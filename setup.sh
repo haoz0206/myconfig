@@ -8,6 +8,7 @@ cp starship.toml ~/.config/starship.toml
 # 获取当前脚本目录路径
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 ZSH_CUSTOM_FILE="$SCRIPT_DIR/zh_cus.zshrc"
+BASH_CUSTOM_FILE="$SCRIPT_DIR/zh_cus.bashrc"
 
 read -p "Do you want to install UV? (y/n) " -n 1 -r
 echo    # 移动到新行
@@ -22,6 +23,7 @@ then
     then
         read -p "Enter the path for UV cache directory: " uv_cache_dir
         echo "export UV_CACHE_DIR=$uv_cache_dir" >> zh_cus.zshrc
+        echo "export UV_CACHE_DIR=$uv_cache_dir" >> zh_cus.bashrc
         echo "UV cache directory set to $uv_cache_dir"
     else
         echo "Skipping UV cache directory setup."
@@ -36,4 +38,9 @@ if [ -f "$ZSH_CUSTOM_FILE" ]; then
     echo "# Custom zsh configurations" >> ~/.zshrc
     echo "source $ZSH_CUSTOM_FILE" >> ~/.zshrc
     echo "Added source command to ~/.zshrc for custom configurations"
+
+    echo "" >> ~/.bashrc
+    echo "# Custom bash configurations" >> ~/.bashrc
+    echo "source $BASH_CUSTOM_FILE" >> ~/.bashrc
+    echo "Added source command to ~/.bashrc for custom configurations"
 fi
