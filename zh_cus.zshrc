@@ -12,9 +12,9 @@ export tsmirror=https://pypi.tuna.tsinghua.edu.cn/simple
 export zju=https://mirrors.zju.edu.cn/pypi/web/simple
 export HF_ENDPOINT=https://hf-mirror.com
 
-. "$HOME/.local/bin/env"
 
+# eval '$(starship init zsh)'
+eval "$(uv generate-shell-completion zsh)"
+eval "$(uvx --generate-shell-completion zsh)"
 
-eval '$(starship init zsh)'
-eval '$(uv generate-shell-completion zsh)'
-
+export UV_CACHE_DIR=/mnt/nas/share/home/zhonghao/uv_cache
