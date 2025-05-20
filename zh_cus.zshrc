@@ -14,7 +14,7 @@ export HF_ENDPOINT=https://hf-mirror.com
 
 . "$HOME/.local/bin/env"
 
-export myhome=/mnt/nas/share/home/zhonghao
-eval "$(uv generate-shell-completion zsh)"
-export UV_CACHE_DIR=$myhome/.cache/uv
+
+eval '$(starship init zsh)'
+eval '$(uv generate-shell-completion zsh)'
 
