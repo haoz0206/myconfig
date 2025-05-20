@@ -13,22 +13,6 @@ $directory\
 $git_branch\
 $git_status\
 [](fg:color_yellow bg:color_green)\
-$c\
-$dotnet\
-$rust\
-$golang\
-$nodejs\
-$php\
-$java\
-$kotlin\
-$haskell\
-$python\
-$elixir\
-$elm\
-$gradle\
-$julia\
-$nim\
-$scala\
 [](fg:color_green bg:color_cyan)\
 $docker_context\
 [ ](color_cyan)\
