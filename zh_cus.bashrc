@@ -17,4 +17,3 @@ eval "$(starship init bash)"
 eval "$(uv generate-shell-completion bash)"
 eval "$(uvx --generate-shell-completion bash)"
 
-export UV_CACHE_DIR=/mnt/public/uv_cache

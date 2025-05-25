@@ -25,8 +25,7 @@ export zju=https://mirrors.zju.edu.cn/pypi/web/simple
 export HF_ENDPOINT=https://hf-mirror.com
 
 
-# eval '$(starship init zsh)'
+eval "$(starship init zsh)"
 eval "$(uv generate-shell-completion zsh)"
 eval "$(uvx --generate-shell-completion zsh)"
 
-export UV_CACHE_DIR=/mnt/public/uv_cache
