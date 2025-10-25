@@ -1,47 +1,261 @@
 #!/bin/bash
+
+set -e  # Exit on error
+
+# Color codes for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Helper functions
+info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Backup function
+backup_file() {
+    local file=$1
+    if [[ -f "$file" ]]; then
+        local backup="${file}.backup.$(date +%Y%m%d_%H%M%S)"
+        cp "$file" "$backup"
+        info "Backed up $file to $backup"
+    fi
+}
+
+# Check prerequisites
+check_prerequisites() {
+    info "Checking prerequisites..."
+    local missing=()
+
+    for cmd in curl readlink; do
+        if ! command -v "$cmd" &> /dev/null; then
+            missing+=("$cmd")
+        fi
+    done
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        error "Missing required commands: ${missing[*]}"
+        error "Please install these tools and try again."
+        exit 1
+    fi
+
+    success "All prerequisites met"
+}
+
+# Detect current shell
+detect_shell() {
+    local shell_path="${SHELL:-/bin/bash}"
+    local shell_name=$(basename "$shell_path")
+
+    case "$shell_name" in
+        zsh)
+            echo "zsh"
+            ;;
+        bash)
+            echo "bash"
+            ;;
+        *)
+            warning "Unknown shell: $shell_name, defaulting to bash"
+            echo "bash"
+            ;;
+    esac
+}
+
+# Main script starts here
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 ZSH_CUSTOM_FILE="$SCRIPT_DIR/zh_cus.zshrc"
 BASH_CUSTOM_FILE="$SCRIPT_DIR/zh_cus.bashrc"
 
-echo "Setting up environment..."
+echo ""
+info "============================================"
+info "  Environment Setup Script"
+info "============================================"
+echo ""
 
-# starship
-curl -sS https://starship.rs/install.sh | sh
-mkdir ~/.config
-ln -s "$SCRIPT_DIR/starship.toml" ~/.config/starship.toml
+# Check prerequisites
+check_prerequisites
 
-# 获取当前脚本目录路径
+# Detect shell
+DETECTED_SHELL=$(detect_shell)
+info "Detected shell: $DETECTED_SHELL"
 
-read -p "Do you want to install UV? (y/n) " -n 1 -r
-echo    # 移动到新行
-if [[ $REPLY =~ ^[Yy]$ ]]
-then
-    echo "Installing UV..."
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    echo "UV installation complete!"
+# Ask user if they want to use detected shell or configure both
+echo ""
+read -p "Configure for $DETECTED_SHELL only? (y/n, default: y) " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Nn]$ ]]; then
+    CONFIGURE_SHELLS=("bash" "zsh")
+    info "Will configure both bash and zsh"
 else
-    echo "Skipping UV installation."
+    CONFIGURE_SHELLS=("$DETECTED_SHELL")
+    info "Will configure $DETECTED_SHELL only"
 fi
 
-# 添加source命令到 ~/.zshrc
-read -p "Do you want to set up UV cache directory? (y/n) " -n 1 -r
-echo    # 移动到新行
-if [[ $REPLY =~ ^[Yy]$ ]]
-then
-    read -p "Enter the path for UV cache directory: " uv_cache_dir
-    echo "export UV_CACHE_DIR=$uv_cache_dir" >> custom.zshrc
-    echo "export UV_CACHE_DIR=$uv_cache_dir" >> custom.bashrc
-    echo "UV cache directory set to $uv_cache_dir"
+# Install Starship
+echo ""
+info "Installing Starship prompt..."
+if command -v starship &> /dev/null; then
+    warning "Starship is already installed, skipping..."
 else
-    echo "Skipping UV cache directory setup."
+    if curl -sS https://starship.rs/install.sh | sh; then
+        success "Starship installed successfully"
+    else
+        error "Failed to install Starship"
+        exit 1
+    fi
 fi
 
+# Setup Starship config
+info "Setting up Starship configuration..."
+if [[ ! -d ~/.config ]]; then
+    mkdir -p ~/.config
+    success "Created ~/.config directory"
+fi
 
-echo "# Custom zsh configurations" > custom.zshrc
-echo "source $ZSH_CUSTOM_FILE" >> custom.zshrc
-echo "Added source command 'echo \"source $SCRIPT_DIR/custom.zshrc\" >> ~/.zshrc' to ~/.zshrc for custom configurations"
+if [[ -L ~/.config/starship.toml ]] || [[ -f ~/.config/starship.toml ]]; then
+    backup_file ~/.config/starship.toml
+    rm -f ~/.config/starship.toml
+fi
 
+if ln -s "$SCRIPT_DIR/starship.toml" ~/.config/starship.toml; then
+    success "Linked Starship configuration"
+else
+    error "Failed to link Starship configuration"
+    exit 1
+fi
 
-echo "# Custom bash configurations" > custom.bashrc
-echo "source $BASH_CUSTOM_FILE" >> custom.bashrc
-echo "Added source command 'echo \"source $SCRIPT_DIR/custom.bashrc\" >> ~/.bashrc' to ~/.bashrc for custom configurations"
+# Install UV (optional)
+echo ""
+read -p "Do you want to install UV? (y/n, default: n) " -n 1 -r
+echo
+INSTALL_UV=false
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    info "Installing UV..."
+    if curl -LsSf https://astral.sh/uv/install.sh | sh; then
+        success "UV installed successfully"
+        INSTALL_UV=true
+    else
+        error "Failed to install UV"
+    fi
+else
+    info "Skipping UV installation"
+fi
+
+# Setup UV cache directory (optional)
+UV_CACHE_DIR=""
+if [[ "$INSTALL_UV" == true ]]; then
+    echo ""
+    read -p "Do you want to set up UV cache directory? (y/n, default: n) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        read -p "Enter the path for UV cache directory: " UV_CACHE_DIR
+        if [[ -n "$UV_CACHE_DIR" ]]; then
+            # Expand tilde in path
+            UV_CACHE_DIR="${UV_CACHE_DIR/#\~/$HOME}"
+            if [[ ! -d "$UV_CACHE_DIR" ]]; then
+                mkdir -p "$UV_CACHE_DIR"
+                success "Created UV cache directory: $UV_CACHE_DIR"
+            fi
+            info "UV cache directory set to: $UV_CACHE_DIR"
+        else
+            warning "Empty path provided, skipping UV cache directory setup"
+        fi
+    else
+        info "Skipping UV cache directory setup"
+    fi
+fi
+
+# Generate custom shell configurations
+for shell in "${CONFIGURE_SHELLS[@]}"; do
+    echo ""
+    info "Configuring $shell..."
+
+    case "$shell" in
+        zsh)
+            CUSTOM_FILE="$SCRIPT_DIR/custom.zshrc"
+            RC_FILE=~/.zshrc
+            SOURCE_FILE="$ZSH_CUSTOM_FILE"
+            ;;
+        bash)
+            CUSTOM_FILE="$SCRIPT_DIR/custom.bashrc"
+            RC_FILE=~/.bashrc
+            SOURCE_FILE="$BASH_CUSTOM_FILE"
+            ;;
+    esac
+
+    # Create custom configuration file
+    info "Creating $CUSTOM_FILE..."
+    {
+        echo "# Custom $shell configurations"
+        echo "# Generated by setup.sh on $(date)"
+        echo ""
+
+        # Add UV cache directory if specified
+        if [[ -n "$UV_CACHE_DIR" ]]; then
+            echo "# UV cache directory"
+            echo "export UV_CACHE_DIR=\"$UV_CACHE_DIR\""
+            echo ""
+        fi
+
+        # Source the main configuration file
+        echo "# Source main configuration"
+        echo "source \"$SOURCE_FILE\""
+    } > "$CUSTOM_FILE"
+    success "Created $CUSTOM_FILE"
+
+    # Add source command to RC file if not already present
+    if [[ -f "$RC_FILE" ]]; then
+        backup_file "$RC_FILE"
+
+        if grep -q "source \"$CUSTOM_FILE\"" "$RC_FILE" 2>/dev/null; then
+            warning "Source command already exists in $RC_FILE"
+        else
+            echo "" >> "$RC_FILE"
+            echo "# Custom configurations from myconfig" >> "$RC_FILE"
+            echo "source \"$CUSTOM_FILE\"" >> "$RC_FILE"
+            success "Added source command to $RC_FILE"
+        fi
+    else
+        warning "$RC_FILE does not exist, creating it..."
+        {
+            echo "# Custom configurations from myconfig"
+            echo "source \"$CUSTOM_FILE\""
+        } > "$RC_FILE"
+        success "Created $RC_FILE with source command"
+    fi
+done
+
+# Final message
+echo ""
+info "============================================"
+success "Setup completed successfully!"
+info "============================================"
+echo ""
+info "Next steps:"
+info "1. Restart your shell or run: source ~/.${DETECTED_SHELL}rc"
+info "2. Your original RC files have been backed up with timestamp"
+echo ""
+
+if [[ "$INSTALL_UV" == true ]]; then
+    info "UV has been installed. You may need to add it to your PATH:"
+    info "  export PATH=\"\$HOME/.cargo/bin:\$PATH\""
+    echo ""
+fi
+
+info "To rollback changes, check the backup files in your home directory:"
+info "  ls -la ~/*.backup.*"
+echo ""
