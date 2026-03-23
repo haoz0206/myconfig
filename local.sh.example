@@ -1,0 +1,4 @@
+# Machine-specific overrides (copy to local.sh, which is gitignored)
+PROXY_IP=127.0.0.1
+PROXY_PORT=12421
+# export UV_CACHE_DIR=/data/cache/uv
