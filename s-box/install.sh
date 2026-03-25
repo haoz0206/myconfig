@@ -4,11 +4,20 @@ set -e
 # ====================================
 # sing-box installer (Linux only)
 # Downloads the latest release and sets up systemd service
+# Tries GitHub first, falls back to Chinese mirrors
 # ====================================
 
 INSTALL_DIR="$HOME/.local/bin"
 CONFIG_DIR="$HOME/.config/sing-box"
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
+# GitHub mirror list (tried in order if GitHub is blocked)
+MIRRORS=(
+    "https://github.com"
+    "https://ghgo.xyz/https://github.com"
+    "https://mirror.ghproxy.com/https://github.com"
+    "https://gh-proxy.com/https://github.com"
+)
 
 # ====================================
 # Detect platform
@@ -32,16 +41,43 @@ case "$ARCH" in
 esac
 
 # ====================================
+# Helper: download with mirror fallback
+# ====================================
+download() {
+    local path="$1" dest="$2"
+    for base in "${MIRRORS[@]}"; do
+        local url="${base}${path}"
+        echo "  Trying: $url"
+        if curl -sL --connect-timeout 10 --max-time 120 -o "$dest" "$url" && [ -s "$dest" ]; then
+            echo "  [ok] Downloaded from $base"
+            return 0
+        fi
+        rm -f "$dest"
+    done
+    return 1
+}
+
+# ====================================
 # Get latest version
 # ====================================
 echo "[1/4] Fetching latest sing-box version..."
-LATEST=$(curl -sL "https://api.github.com/repos/SagerNet/sing-box/releases/latest" \
-    | grep '"tag_name"' | head -1 | sed 's/.*"v\(.*\)".*/\1/')
+
+# Try GitHub API first, then fall back to mirrors
+for base in "${MIRRORS[@]}"; do
+    api_url="${base}/SagerNet/sing-box/releases/latest"
+    LATEST=$(curl -sL --connect-timeout 10 "$api_url" \
+        | grep '"tag_name"' | head -1 | sed 's/.*"v\(.*\)".*/\1/')
+    if [ -n "$LATEST" ]; then
+        break
+    fi
+done
 
 if [ -z "$LATEST" ]; then
-    echo "Error: Failed to fetch latest version"
-    echo "You can specify a version manually: SINGBOX_VERSION=1.11.0 $0"
-    exit 1
+    echo "  Warning: Cannot fetch latest version from any source"
+    if [ -z "$SINGBOX_VERSION" ]; then
+        echo "  Specify manually: SINGBOX_VERSION=1.11.0 $0"
+        exit 1
+    fi
 fi
 
 VERSION="${SINGBOX_VERSION:-$LATEST}"
@@ -54,7 +90,6 @@ if command -v sing-box &>/dev/null; then
     CURRENT=$(sing-box version 2>/dev/null | head -1 | awk '{print $NF}')
     if [ "$CURRENT" = "$VERSION" ]; then
         echo "  [ok] sing-box $VERSION already installed"
-        echo "  Run: $SCRIPT_DIR/setup.sh to configure"
         exit 0
     fi
     echo "  Upgrading: $CURRENT -> $VERSION"
@@ -65,15 +100,14 @@ fi
 # ====================================
 echo "[2/4] Downloading sing-box $VERSION (linux/$ARCH)..."
 TARBALL="sing-box-${VERSION}-linux-${ARCH}.tar.gz"
-URL="https://github.com/SagerNet/sing-box/releases/download/v${VERSION}/${TARBALL}"
+RELEASE_PATH="/SagerNet/sing-box/releases/download/v${VERSION}/${TARBALL}"
 
 TMPDIR=$(mktemp -d)
 trap "rm -rf $TMPDIR" EXIT
 
-curl -sL -o "$TMPDIR/$TARBALL" "$URL"
-
-if [ ! -s "$TMPDIR/$TARBALL" ]; then
-    echo "Error: Download failed"
+if ! download "$RELEASE_PATH" "$TMPDIR/$TARBALL"; then
+    echo "Error: Download failed from all sources"
+    echo "You can download manually and place it at: $INSTALL_DIR/sing-box"
     exit 1
 fi
 
