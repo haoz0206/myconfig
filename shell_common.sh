@@ -30,8 +30,13 @@ export tsmirror=https://pypi.tuna.tsinghua.edu.cn/simple
 export zju=https://mirrors.zju.edu.cn/pypi/web/simple
 export HF_ENDPOINT=https://hf-mirror.com
 
-# -- Machine-specific overrides --
+# -- sing-box TUN toggle (Linux only) --
 MYCONFIG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+if [ "$(uname)" = "Linux" ] && [ -f "$MYCONFIG_DIR/s-box/toggle.sh" ]; then
+    alias tun="$MYCONFIG_DIR/s-box/toggle.sh"
+fi
+
+# -- Machine-specific overrides --
 if [ -f "$MYCONFIG_DIR/local.sh" ]; then
     source "$MYCONFIG_DIR/local.sh"
 fi

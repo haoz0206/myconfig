@@ -54,6 +54,11 @@ for f in zshrc bashrc shell_common.sh starship.toml tmux.conf; do
     cp "$SCRIPT_DIR/$f" "$DEPLOY_DIR/$f"
     echo "  [copy] $f"
 done
+if [ -d "$SCRIPT_DIR/s-box" ]; then
+    cp -r "$SCRIPT_DIR/s-box" "$DEPLOY_DIR/s-box"
+    chmod +x "$DEPLOY_DIR/s-box/"*.sh
+    echo "  [copy] s-box/"
+fi
 
 # -- Symlinks from standard locations --
 echo "[2/5] Linking config files..."
