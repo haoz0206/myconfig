@@ -99,7 +99,8 @@ fi
 if ! command -v starship &>/dev/null; then
     read -p "  Install starship? (y/n) " -n 1 -r; echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        curl -sS https://starship.rs/install.sh | sh
+        mkdir -p "$HOME/.local/bin"
+        curl -sS https://starship.rs/install.sh | sh -s -- --bin-dir "$HOME/.local/bin" -y
     fi
 else
     echo "  [ok] starship installed"

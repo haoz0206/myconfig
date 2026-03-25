@@ -2,6 +2,9 @@
 # Shared shell config (sourced by both zshrc and bashrc)
 # ====================================
 
+# -- PATH --
+export PATH="$HOME/.local/bin:$PATH"
+
 # -- 真彩色支持 --
 # SSH 不会传递 COLORTERM，导致远程 TUI 工具降级到 256 色
 if [ -n "$SSH_TTY" ] && [ -z "$COLORTERM" ]; then
