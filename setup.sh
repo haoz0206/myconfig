@@ -42,18 +42,18 @@ echo "myconfig setup ($SCRIPT_DIR)"
 echo ""
 
 # -- Symlinks --
-echo "[1/4] Linking config files..."
+echo "[1/5] Linking config files..."
 mkdir -p ~/.config
 link_file "$SCRIPT_DIR/starship.toml" ~/.config/starship.toml
 link_file "$SCRIPT_DIR/tmux.conf" ~/.tmux.conf
 
 # -- Shell integration --
-echo "[2/4] Shell integration..."
+echo "[2/5] Shell integration..."
 inject_source "source $SCRIPT_DIR/zshrc"  ~/.zshrc
 inject_source "source $SCRIPT_DIR/bashrc" ~/.bashrc
 
 # -- Machine-specific local.sh --
-echo "[3/4] Machine-specific config..."
+echo "[3/5] Machine-specific config..."
 if [ ! -f "$SCRIPT_DIR/local.sh" ]; then
     read -p "  Proxy IP [127.0.0.1]: " proxy_ip
     proxy_ip="${proxy_ip:-127.0.0.1}"
@@ -67,8 +67,20 @@ else
     echo "  [ok] local.sh exists"
 fi
 
+# -- Zinit (zsh plugin manager) --
+echo "[4/5] Zinit plugin manager..."
+ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
+if [ -d "$ZINIT_HOME" ]; then
+    echo "  [ok] zinit installed"
+else
+    echo "  [install] Cloning zinit..."
+    mkdir -p "$(dirname "$ZINIT_HOME")"
+    git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
+    echo "  [ok] zinit installed (plugins will load on first zsh launch)"
+fi
+
 # -- Optional tool installs --
-echo "[4/4] Optional tools..."
+echo "[5/5] Optional tools..."
 
 if ! command -v starship &>/dev/null; then
     read -p "  Install starship? (y/n) " -n 1 -r; echo
