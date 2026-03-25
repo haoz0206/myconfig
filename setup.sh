@@ -2,6 +2,7 @@
 set -e
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+DEPLOY_DIR="$HOME/.myconfig"
 
 # ====================================
 # Helpers
@@ -30,6 +31,11 @@ inject_source() {
     if [ -f "$rcfile" ] && grep -qF "$line" "$rcfile"; then
         echo "  [ok] $rcfile already sources config"
     else
+        # Remove old source lines pointing to this repo or previous deploy dir
+        if [ -f "$rcfile" ]; then
+            sed -i.bak '/source.*myconfig/d' "$rcfile"
+            rm -f "$rcfile.bak"
+        fi
         echo "$line" >> "$rcfile"
         echo "  [add] source line -> $rcfile"
     fi
@@ -38,37 +44,47 @@ inject_source() {
 # ====================================
 # Main
 # ====================================
-echo "myconfig setup ($SCRIPT_DIR)"
+echo "myconfig setup ($SCRIPT_DIR -> $DEPLOY_DIR)"
 echo ""
 
-# -- Symlinks --
-echo "[1/5] Linking config files..."
+# -- Deploy config files --
+echo "[1/5] Deploying config files to $DEPLOY_DIR..."
+mkdir -p "$DEPLOY_DIR"
+for f in zshrc bashrc shell_common.sh starship.toml tmux.conf; do
+    cp "$SCRIPT_DIR/$f" "$DEPLOY_DIR/$f"
+    echo "  [copy] $f"
+done
+
+# -- Symlinks from standard locations --
+echo "[2/5] Linking config files..."
 mkdir -p ~/.config
-link_file "$SCRIPT_DIR/starship.toml" ~/.config/starship.toml
-link_file "$SCRIPT_DIR/tmux.conf" ~/.tmux.conf
+link_file "$DEPLOY_DIR/starship.toml" ~/.config/starship.toml
+link_file "$DEPLOY_DIR/tmux.conf" ~/.tmux.conf
 
 # -- Shell integration --
-echo "[2/5] Shell integration..."
-inject_source "source $SCRIPT_DIR/zshrc"  ~/.zshrc
-inject_source "source $SCRIPT_DIR/bashrc" ~/.bashrc
+echo "[3/5] Shell integration..."
+inject_source "source $DEPLOY_DIR/zshrc"  ~/.zshrc
+inject_source "source $DEPLOY_DIR/bashrc" ~/.bashrc
 
 # -- Machine-specific local.sh --
-echo "[3/5] Machine-specific config..."
-if [ ! -f "$SCRIPT_DIR/local.sh" ]; then
+echo "[4/5] Machine-specific config..."
+if [ ! -f "$DEPLOY_DIR/local.sh" ]; then
     read -p "  Proxy IP [127.0.0.1]: " proxy_ip
     proxy_ip="${proxy_ip:-127.0.0.1}"
     read -p "  Proxy port [12421]: " proxy_port
     proxy_port="${proxy_port:-12421}"
     sed "s/PROXY_IP=.*/PROXY_IP=${proxy_ip}/" "$SCRIPT_DIR/local.sh.example" \
       | sed "s/PROXY_PORT=.*/PROXY_PORT=${proxy_port}/" \
-      > "$SCRIPT_DIR/local.sh"
+      > "$DEPLOY_DIR/local.sh"
     echo "  [new] Created local.sh (proxy=${proxy_ip}:${proxy_port})"
 else
-    echo "  [ok] local.sh exists"
+    echo "  [ok] local.sh exists (preserved)"
 fi
 
-# -- Zinit (zsh plugin manager) --
-echo "[4/5] Zinit plugin manager..."
+# -- Optional tool installs --
+echo "[5/5] Optional tools..."
+
+# Zinit
 ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
 if [ -d "$ZINIT_HOME" ]; then
     echo "  [ok] zinit installed"
@@ -79,9 +95,7 @@ else
     echo "  [ok] zinit installed (plugins will load on first zsh launch)"
 fi
 
-# -- Optional tool installs --
-echo "[5/5] Optional tools..."
-
+# Starship
 if ! command -v starship &>/dev/null; then
     read -p "  Install starship? (y/n) " -n 1 -r; echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -91,6 +105,7 @@ else
     echo "  [ok] starship installed"
 fi
 
+# uv
 if ! command -v uv &>/dev/null; then
     read -p "  Install uv? (y/n) " -n 1 -r; echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -100,6 +115,7 @@ else
     echo "  [ok] uv installed"
 fi
 
+# fzf
 if ! command -v fzf &>/dev/null; then
     read -p "  Install fzf? (y/n) " -n 1 -r; echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -113,6 +129,7 @@ else
     echo "  [ok] fzf installed"
 fi
 
+# zoxide
 if ! command -v zoxide &>/dev/null; then
     read -p "  Install zoxide? (y/n) " -n 1 -r; echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -127,4 +144,5 @@ else
 fi
 
 echo ""
-echo "Done! Restart your shell or run: source ~/.zshrc"
+echo "Done! Config deployed to $DEPLOY_DIR"
+echo "Restart your shell or run: source ~/.zshrc"
