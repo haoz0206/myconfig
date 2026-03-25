@@ -100,5 +100,31 @@ else
     echo "  [ok] uv installed"
 fi
 
+if ! command -v fzf &>/dev/null; then
+    read -p "  Install fzf? (y/n) " -n 1 -r; echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        if command -v brew &>/dev/null; then
+            brew install fzf
+        else
+            git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && ~/.fzf/install --no-bash --no-fish --key-bindings --completion --update-rc
+        fi
+    fi
+else
+    echo "  [ok] fzf installed"
+fi
+
+if ! command -v zoxide &>/dev/null; then
+    read -p "  Install zoxide? (y/n) " -n 1 -r; echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        if command -v brew &>/dev/null; then
+            brew install zoxide
+        else
+            curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
+        fi
+    fi
+else
+    echo "  [ok] zoxide installed"
+fi
+
 echo ""
 echo "Done! Restart your shell or run: source ~/.zshrc"
