@@ -1,5 +1,5 @@
 # ====================================
-# Shared shell config (sourced by both zshrc and bashrc)
+# Shared shell config (sourced by zshrc)
 # ====================================
 
 # -- PATH --

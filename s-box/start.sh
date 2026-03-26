@@ -34,14 +34,20 @@ sudo sing-box run -c "$CONFIG_DIR/config.json" > "$LOG_FILE" 2>&1 &
 SBOX_PID=$!
 echo "$SBOX_PID" > "$PID_FILE"
 
-sleep 2
+sleep 3
 
+# Verify sing-box is actually running (check log for errors too)
 if ! kill -0 "$SBOX_PID" 2>/dev/null; then
     echo "Error: sing-box failed to start"
     echo "Last log:"
     tail -20 "$LOG_FILE"
     rm -f "$PID_FILE"
     exit 1
+fi
+
+if grep -qi "error\|fatal" "$LOG_FILE" 2>/dev/null; then
+    echo "Warning: sing-box started but log contains errors:"
+    grep -i "error\|fatal" "$LOG_FILE" | tail -5
 fi
 
 echo "sing-box started (PID: $SBOX_PID)"

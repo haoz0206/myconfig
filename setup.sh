@@ -50,7 +50,11 @@ echo ""
 # -- Deploy config files --
 echo "[1/5] Deploying config files to $DEPLOY_DIR..."
 mkdir -p "$DEPLOY_DIR"
-for f in zshrc bashrc shell_common.sh starship.toml tmux.conf; do
+for f in zshrc shell_common.sh starship.toml tmux.conf; do
+    if [ ! -f "$SCRIPT_DIR/$f" ]; then
+        echo "  [error] Missing required file: $f"
+        exit 1
+    fi
     cp "$SCRIPT_DIR/$f" "$DEPLOY_DIR/$f"
     echo "  [copy] $f"
 done
@@ -69,7 +73,6 @@ link_file "$DEPLOY_DIR/tmux.conf" ~/.tmux.conf
 # -- Shell integration --
 echo "[3/5] Shell integration..."
 inject_source "source $DEPLOY_DIR/zshrc"  ~/.zshrc
-inject_source "source $DEPLOY_DIR/bashrc" ~/.bashrc
 
 # -- Machine-specific local.sh --
 echo "[4/5] Machine-specific config..."
@@ -78,6 +81,14 @@ if [ ! -f "$DEPLOY_DIR/local.sh" ]; then
     proxy_ip="${proxy_ip:-127.0.0.1}"
     read -p "  Proxy port [12421]: " proxy_port
     proxy_port="${proxy_port:-12421}"
+    if ! [[ "$proxy_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "  [error] Invalid IP address: $proxy_ip"
+        exit 1
+    fi
+    if ! [[ "$proxy_port" =~ ^[0-9]+$ ]] || [ "$proxy_port" -gt 65535 ]; then
+        echo "  [error] Invalid port: $proxy_port (must be 1-65535)"
+        exit 1
+    fi
     sed "s/PROXY_IP=.*/PROXY_IP=${proxy_ip}/" "$SCRIPT_DIR/local.sh.example" \
       | sed "s/PROXY_PORT=.*/PROXY_PORT=${proxy_port}/" \
       > "$DEPLOY_DIR/local.sh"

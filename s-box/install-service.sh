@@ -38,8 +38,9 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=$SINGBOX_BIN run -c $CONFIG_DIR/config.json
+ExecStart="$SINGBOX_BIN" run -c "$CONFIG_DIR/config.json"
 ExecReload=/bin/kill -HUP \$MAINPID
+ExecStop=/bin/kill -TERM \$MAINPID
 Restart=on-failure
 RestartSec=5
 LimitNOFILE=65535

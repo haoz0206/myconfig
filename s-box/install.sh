@@ -103,7 +103,7 @@ TARBALL="sing-box-${VERSION}-linux-${ARCH}.tar.gz"
 RELEASE_PATH="/SagerNet/sing-box/releases/download/v${VERSION}/${TARBALL}"
 
 TMPDIR=$(mktemp -d)
-trap "rm -rf $TMPDIR" EXIT
+trap 'rm -rf "$TMPDIR"' EXIT
 
 if ! download "$RELEASE_PATH" "$TMPDIR/$TARBALL"; then
     echo "Error: Download failed from all sources"

@@ -20,8 +20,7 @@ Then restart your shell or run `source ~/.zshrc`.
         v
 ~/.myconfig/                   # deployed config (what your shell uses)
 ├── zshrc                      #   <- ~/.zshrc sources this
-├── bashrc                     #   <- ~/.bashrc sources this
-├── shell_common.sh            #   shared config for both shells
+├── shell_common.sh            #   shared shell config
 ├── starship.toml              #   <- ~/.config/starship.toml symlinks here
 ├── tmux.conf                  #   <- ~/.tmux.conf symlinks here
 ├── local.sh                   #   machine-specific overrides (not in git)
@@ -34,7 +33,7 @@ Edit the repo freely during development. Run `bash setup.sh` again to redeploy.
 
 1. **Copies** config files to `~/.myconfig/`
 2. **Symlinks** starship and tmux configs to standard locations
-3. **Injects** `source ~/.myconfig/zshrc` into `~/.zshrc` (and bashrc)
+3. **Injects** `source ~/.myconfig/zshrc` into `~/.zshrc`
 4. **Creates** `local.sh` from template (prompts for proxy IP/port)
 5. **Installs** tools (all optional, interactive prompts):
 
@@ -143,10 +142,9 @@ Supports OSC 52 clipboard for copying over SSH.
 setup.sh            Main installer/deployer
 shell_common.sh     Shared config: PATH, proxy, mirrors, truecolor
 zshrc               Zsh: zinit plugins, fzf/zoxide/starship init
-bashrc              Bash: starship/uv init
 starship.toml       Prompt theme (One Dark, powerline segments)
 tmux.conf           tmux config (vim keys, mouse, OSC 52 clipboard)
 local.sh.example    Template for machine-specific overrides
 s-box/              sing-box proxy management scripts
-tun/                Legacy TUN proxy scripts (tun2socks, Linux only)
+tun/                Manual TUN proxy reference (tun2socks, Linux only)
 ```
