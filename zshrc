@@ -4,17 +4,19 @@
 MYCONFIG_DIR="$(cd "$(dirname "${(%):-%x}")" && pwd)"
 source "$MYCONFIG_DIR/shell_common.sh"
 
-# -- Color support --
-if [ -x /usr/bin/dircolors ]; then
+# -- Color support & eza --
+if command -v eza &>/dev/null; then
+    alias ls='eza'
+    alias ll='eza -l --git'
+    alias la='eza -la --git'
+    alias lt='eza -T --level=2'
+elif [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
     alias ls='ls --color=auto'
-    alias grep='grep --color=auto'
-    alias fgrep='fgrep --color=auto'
-    alias egrep='egrep --color=auto'
 elif [ "$(uname)" = "Darwin" ]; then
     export CLICOLOR=1
-    alias grep='grep --color=auto'
 fi
+alias grep='grep --color=auto'
 
 # -- Zinit plugin manager --
 ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"

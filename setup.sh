@@ -160,6 +160,22 @@ else
     echo "  [ok] zoxide installed"
 fi
 
+# eza
+if ! command -v eza &>/dev/null; then
+    read -p "  Install eza? (y/n) " -n 1 -r; echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        if command -v brew &>/dev/null; then
+            brew install eza
+        elif command -v cargo &>/dev/null; then
+            cargo install eza
+        else
+            echo "  [skip] Install eza manually: https://github.com/eza-community/eza"
+        fi
+    fi
+else
+    echo "  [ok] eza installed"
+fi
+
 echo ""
 echo "Done! Config deployed to $DEPLOY_DIR"
 echo "Restart your shell or run: source ~/.zshrc"
