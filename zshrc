@@ -4,6 +4,15 @@
 MYCONFIG_DIR="$(cd "$(dirname "${(%):-%x}")" && pwd)"
 source "$MYCONFIG_DIR/shell_common.sh"
 
+# -- History --
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+setopt APPEND_HISTORY
+setopt SHARE_HISTORY
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE
+
 # -- Color support & eza --
 if command -v eza &>/dev/null; then
     alias ls='eza'
