@@ -4,6 +4,8 @@ set -e
 PID_FILE="/tmp/tun2socks.pid"
 LOG_FILE="/tmp/tun2socks.log"
 TUN_DEVICE="tun_proxy"
+SOCKS5_SERVER="10.126.126.6"
+SOCKS5_PORT="12421"
 
 echo "========================================"
 echo "Proxy TUN Status"
@@ -60,10 +62,10 @@ done
 # 检查 SOCKS5 代理
 echo ""
 echo "5. SOCKS5 Proxy Connection:"
-if nc -z 127.0.0.1 1080 2>/dev/null; then
-    echo "   ✓ SOCKS5 proxy is reachable (127.0.0.1:1080)"
+if nc -z "$SOCKS5_SERVER" "$SOCKS5_PORT" 2>/dev/null; then
+    echo "   ✓ SOCKS5 proxy is reachable ($SOCKS5_SERVER:$SOCKS5_PORT)"
 else
-    echo "   ✗ SOCKS5 proxy is NOT reachable (127.0.0.1:1080)"
+    echo "   ✗ SOCKS5 proxy is NOT reachable ($SOCKS5_SERVER:$SOCKS5_PORT)"
 fi
 
 # 显示最近日志

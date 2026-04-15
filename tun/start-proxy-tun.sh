@@ -23,6 +23,7 @@ EXCLUDED_NETWORKS=(
 
 LOG_FILE="/tmp/tun2socks.log"
 PID_FILE="/tmp/tun2socks.pid"
+ADDED_ROUTES_FILE="/tmp/tun2socks_added_routes"
 
 #######################
 # 检查是否已运行
@@ -101,21 +102,25 @@ fi
 echo "Original gateway: $ORIGINAL_GW via $ORIGINAL_DEV"
 echo "$ORIGINAL_GW" > /tmp/tun2socks_gw
 echo "$ORIGINAL_DEV" > /tmp/tun2socks_dev
+: > "$ADDED_ROUTES_FILE"
 
 # SOCKS5 代理的流量直连（避免循环）
 if [ "$SOCKS5_SERVER" != "127.0.0.1" ] && [ "$SOCKS5_SERVER" != "localhost" ]; then
     sudo ip route add $SOCKS5_SERVER/32 via $ORIGINAL_GW dev $ORIGINAL_DEV
+    echo "$SOCKS5_SERVER/32" >> "$ADDED_ROUTES_FILE"
     echo "✓ SOCKS5 server route added"
 fi
 
 # 排除的网段保持原路由
 for NETWORK in "${EXCLUDED_NETWORKS[@]}"; do
     # 检查该网段是否已有路由，如果有就跳过
-    if ip route show $NETWORK | grep -q "$NETWORK"; then
+    if ip route show exact $NETWORK | grep -q .; then
         echo "✓ Keeping existing route for $NETWORK"
     else
-        sudo ip route add $NETWORK via $ORIGINAL_GW dev $ORIGINAL_DEV 2>/dev/null
-        echo "✓ Added direct route for $NETWORK"
+        if sudo ip route add $NETWORK via $ORIGINAL_GW dev $ORIGINAL_DEV 2>/dev/null; then
+            echo "$NETWORK" >> "$ADDED_ROUTES_FILE"
+            echo "✓ Added direct route for $NETWORK"
+        fi
     fi
 done
 

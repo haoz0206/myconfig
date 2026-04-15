@@ -3,6 +3,7 @@ set -e
 
 TUN_DEVICE="tun_proxy"
 PID_FILE="/tmp/tun2socks.pid"
+ADDED_ROUTES_FILE="/tmp/tun2socks_added_routes"
 
 echo "Stopping global proxy..."
 
@@ -22,10 +23,21 @@ if [ -f /tmp/tun2socks_gw ] && [ -f /tmp/tun2socks_dev ]; then
     DEV=$(cat /tmp/tun2socks_dev)
 
     sudo ip route del default 2>/dev/null
+    sudo ip route del default via "$GW" dev "$DEV" 2>/dev/null
     sudo ip route add default via "$GW" dev "$DEV"
 
     rm -f /tmp/tun2socks_gw /tmp/tun2socks_dev
     echo "✓ Default route restored"
+fi
+
+# 清理启动时添加的直连路由
+if [ -f "$ADDED_ROUTES_FILE" ]; then
+    while IFS= read -r NETWORK; do
+        [ -z "$NETWORK" ] && continue
+        sudo ip route del "$NETWORK" 2>/dev/null && \
+            echo "✓ Removed route $NETWORK"
+    done < "$ADDED_ROUTES_FILE"
+    rm -f "$ADDED_ROUTES_FILE"
 fi
 
 # 删除 TUN 设备
