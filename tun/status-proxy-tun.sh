@@ -4,7 +4,7 @@ set -e
 PID_FILE="/tmp/tun2socks.pid"
 LOG_FILE="/tmp/tun2socks.log"
 TUN_DEVICE="tun_proxy"
-SOCKS5_SERVER="10.126.126.6"
+SOCKS5_SERVER="127.0.0.1"
 SOCKS5_PORT="12421"
 
 echo "========================================"
