@@ -1,4 +1,7 @@
-# Machine-specific overrides (copy to local.sh, which is gitignored)
-PROXY_IP=127.0.0.1
-PROXY_PORT=12421
-# export UV_CACHE_DIR=/data/cache/uv
+# Machine-specific overrides; setup.sh preserves ~/.myconfig/local.sh.
+# Example: export UV_CACHE_DIR=/data/cache/uv
+# To opt in to proxy helpers, uncomment the following lines:
+# PROXY_IP=127.0.0.1
+# PROXY_PORT=12421
+# source "$MYCONFIG_DIR/proxy.sh"
+# proxy  # optional: enable on shell startup

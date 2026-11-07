@@ -33,6 +33,17 @@ LOG_FILE="/tmp/tun2socks.log"
 PID_FILE="/tmp/tun2socks.pid"
 ADDED_ROUTES_FILE="/tmp/tun2socks_added_routes"
 
+# Fail before changing network state if required inputs are missing.
+TUN2SOCKS_BIN=$(command -v tun2socks 2>/dev/null || echo "$HOME/go/bin/tun2socks")
+if [ ! -x "$TUN2SOCKS_BIN" ]; then
+    echo "Error: tun2socks not found. Install it first (see README.md)" >&2
+    exit 1
+fi
+if { [ "$SOCKS5_SERVER" = "127.0.0.1" ] || [ "$SOCKS5_SERVER" = "localhost" ]; } && [ "${#REMOTE_PROXY_SERVERS[@]}" -eq 0 ]; then
+    echo "Error: configure REMOTE_PROXY_SERVERS to avoid routing loops." >&2
+    exit 1
+fi
+
 #######################
 # 检查是否已运行
 #######################
@@ -49,9 +60,9 @@ fi
 # 创建 TUN 设备
 #######################
 echo "Creating TUN device: $TUN_DEVICE"
-if ip link show $TUN_DEVICE &>/dev/null; then
-    sudo ip link set dev $TUN_DEVICE down
-    sudo ip tuntap del mode tun dev $TUN_DEVICE
+if ip link show "$TUN_DEVICE" &>/dev/null; then
+    echo "Error: $TUN_DEVICE already exists; refusing to remove it." >&2
+    exit 1
 fi
 
 sudo ip tuntap add mode tun dev $TUN_DEVICE
@@ -70,11 +81,6 @@ echo "✓ TUN device created"
 echo "Starting tun2socks..."
 > $LOG_FILE
 
-TUN2SOCKS_BIN=$(command -v tun2socks 2>/dev/null || echo "$HOME/go/bin/tun2socks")
-if [ ! -x "$TUN2SOCKS_BIN" ]; then
-    echo "Error: tun2socks not found. Install it first (see README.md)"
-    exit 1
-fi
 
 nohup sudo "$TUN2SOCKS_BIN" \
     -device "$TUN_DEVICE" \

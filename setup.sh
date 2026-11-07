@@ -1,181 +1,92 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 DEPLOY_DIR="$HOME/.myconfig"
+INSTALL=1
 
-# ====================================
-# Helpers
-# ====================================
-link_file() {
-    local src="$1" dst="$2"
-    if [ -L "$dst" ]; then
-        local current
-        current=$(readlink "$dst" 2>/dev/null || true)
-        if [ "$current" = "$src" ]; then
-            echo "  [ok] $dst -> $src"
-            return
-        fi
-        echo "  [update] $dst -> $src (was $current)"
-        ln -sf "$src" "$dst"
-    elif [ -e "$dst" ]; then
-        echo "  [skip] $dst already exists (not a symlink, backup manually)"
-    else
-        ln -s "$src" "$dst"
-        echo "  [link] $dst -> $src"
-    fi
+usage() {
+    cat <<'USAGE'
+Usage: bash setup.sh [--no-install] [--help]
+  --no-install  Deploy configuration without installing Homebrew or formulae
+  --help        Show this help
+USAGE
 }
-
-inject_source() {
-    local line="$1" rcfile="$2"
-    if [ -f "$rcfile" ] && grep -qF "$line" "$rcfile"; then
-        echo "  [ok] $rcfile already sources config"
-    else
-        # Remove old source lines pointing to this repo or previous deploy dir
-        if [ -f "$rcfile" ]; then
-            sed -i.bak '/source.*myconfig/d' "$rcfile"
-            rm -f "$rcfile.bak"
-        fi
-        echo "$line" >> "$rcfile"
-        echo "  [add] source line -> $rcfile"
-    fi
-}
-
-# ====================================
-# Main
-# ====================================
-echo "myconfig setup ($SCRIPT_DIR -> $DEPLOY_DIR)"
-echo ""
-
-# -- Deploy config files --
-echo "[1/5] Deploying config files to $DEPLOY_DIR..."
-mkdir -p "$DEPLOY_DIR"
-for f in zshrc shell_common.sh starship.toml tmux.conf; do
-    if [ ! -f "$SCRIPT_DIR/$f" ]; then
-        echo "  [error] Missing required file: $f"
-        exit 1
-    fi
-    cp "$SCRIPT_DIR/$f" "$DEPLOY_DIR/$f"
-    echo "  [copy] $f"
+for arg in "$@"; do
+    case "$arg" in
+        --no-install) INSTALL=0 ;;
+        -h|--help) usage; exit 0 ;;
+        *) echo "Unknown option: $arg" >&2; usage >&2; exit 2 ;;
+    esac
 done
-if [ -d "$SCRIPT_DIR/s-box" ]; then
-    cp -r "$SCRIPT_DIR/s-box" "$DEPLOY_DIR/s-box"
-    chmod +x "$DEPLOY_DIR/s-box/"*.sh
-    echo "  [copy] s-box/"
-fi
 
-# -- Symlinks from standard locations --
-echo "[2/5] Linking config files..."
-mkdir -p ~/.config
-link_file "$DEPLOY_DIR/starship.toml" ~/.config/starship.toml
-link_file "$DEPLOY_DIR/tmux.conf" ~/.tmux.conf
+# Homebrew may not be in PATH in a fresh login session.
+find_brew() {
+    if command -v brew >/dev/null 2>&1; then command -v brew; return; fi
+    local candidate
+    for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew /home/linuxbrew/.linuxbrew/bin/brew; do
+        if [ -x "$candidate" ]; then printf '%s\n' "$candidate"; return; fi
+    done
+    return 1
+}
 
-# -- Shell integration --
-echo "[3/5] Shell integration..."
-inject_source "source $DEPLOY_DIR/zshrc"  ~/.zshrc
-
-# -- Machine-specific local.sh --
-echo "[4/5] Machine-specific config..."
-if [ ! -f "$DEPLOY_DIR/local.sh" ]; then
-    read -p "  Proxy IP [127.0.0.1]: " proxy_ip
-    proxy_ip="${proxy_ip:-127.0.0.1}"
-    read -p "  Proxy port [12421]: " proxy_port
-    proxy_port="${proxy_port:-12421}"
-    if ! [[ "$proxy_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        echo "  [error] Invalid IP address: $proxy_ip"
-        exit 1
+if [ "$INSTALL" -eq 1 ]; then
+    if ! BREW=$(find_brew); then
+        echo 'Homebrew is not installed. Running the official installer (it may request sudo).'
+        command -v curl >/dev/null 2>&1 || { echo 'curl is required to install Homebrew.' >&2; exit 1; }
+        installer=$(mktemp "${TMPDIR:-/tmp}/myconfig-brew.XXXXXXXX")
+        trap 'rm -f "$installer"' EXIT
+        curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$installer"
+        /bin/bash "$installer"
+        rm -f "$installer"
+        trap - EXIT
+        BREW=$(find_brew) || { echo 'Homebrew could not be found after installation.' >&2; exit 1; }
     fi
-    if ! [[ "$proxy_port" =~ ^[0-9]+$ ]] || [ "$proxy_port" -gt 65535 ]; then
-        echo "  [error] Invalid port: $proxy_port (must be 1-65535)"
-        exit 1
-    fi
-    sed "s/PROXY_IP=.*/PROXY_IP=${proxy_ip}/" "$SCRIPT_DIR/local.sh.example" \
-      | sed "s/PROXY_PORT=.*/PROXY_PORT=${proxy_port}/" \
-      > "$DEPLOY_DIR/local.sh"
-    echo "  [new] Created local.sh (proxy=${proxy_ip}:${proxy_port})"
-else
-    echo "  [ok] local.sh exists (preserved)"
+    eval "$("$BREW" shellenv)"
+    echo 'Installing Homebrew formulae...'
+    "$BREW" install zsh tmux starship fzf zoxide uv eza zinit
 fi
 
-# -- Optional tool installs --
-echo "[5/5] Optional tools..."
+# Preserve files replaced by deployment and conflicting destinations.
+backup() {
+    local path="$1" backup_path="${1}.myconfig-backup-$(date +%Y%m%d%H%M%S)" n=0
+    while [ -e "$backup_path" ] || [ -L "$backup_path" ]; do
+        n=$((n + 1)); backup_path="${path}.myconfig-backup-$(date +%Y%m%d%H%M%S)-$n"
+    done
+    mv "$path" "$backup_path"
+    echo "  backed up $path -> $backup_path"
+}
+link_file() {
+    local source="$1" dest="$2"
+    if [ -L "$dest" ] && [ "$(readlink "$dest")" = "$source" ]; then return; fi
+    if [ -e "$dest" ] || [ -L "$dest" ]; then backup "$dest"; fi
+    ln -s "$source" "$dest"
+    echo "  linked $dest -> $source"
+}
 
-# Zinit
-ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
-if [ -d "$ZINIT_HOME" ]; then
-    echo "  [ok] zinit installed"
-else
-    echo "  [install] Cloning zinit..."
-    mkdir -p "$(dirname "$ZINIT_HOME")"
-    git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
-    echo "  [ok] zinit installed (plugins will load on first zsh launch)"
+mkdir -p "$DEPLOY_DIR" "$HOME/.config"
+for file in zshrc shell_common.sh proxy.sh starship.toml tmux.conf; do
+    source_file="$SCRIPT_DIR/$file"
+    dest_file="$DEPLOY_DIR/$file"
+    [ -f "$source_file" ] || { echo "Missing required file: $source_file" >&2; exit 1; }
+    if [ -f "$dest_file" ] && cmp -s "$source_file" "$dest_file"; then continue; fi
+    if [ -e "$dest_file" ] || [ -L "$dest_file" ]; then backup "$dest_file"; fi
+    cp "$source_file" "$dest_file"
+    echo "  deployed $dest_file"
+done
+link_file "$DEPLOY_DIR/starship.toml" "$HOME/.config/starship.toml"
+link_file "$DEPLOY_DIR/tmux.conf" "$HOME/.tmux.conf"
+
+# Preserve all existing shell configuration. Do not append duplicates on reruns.
+ZSHRC="$HOME/.zshrc"
+touch "$ZSHRC"
+if ! grep -Fxq 'source "$HOME/.myconfig/zshrc"' "$ZSHRC" && \
+   ! grep -Fxq "source $DEPLOY_DIR/zshrc" "$ZSHRC"; then
+    printf '\n# myconfig\nsource "$HOME/.myconfig/zshrc"\n' >> "$ZSHRC"
+    echo "  added myconfig to $ZSHRC"
 fi
-
-# Starship
-if ! command -v starship &>/dev/null; then
-    read -p "  Install starship? (y/n) " -n 1 -r; echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        mkdir -p "$HOME/.local/bin"
-        curl -sS https://starship.rs/install.sh | sh -s -- --bin-dir "$HOME/.local/bin" -y
-    fi
-else
-    echo "  [ok] starship installed"
+if [ ! -e "$DEPLOY_DIR/local.sh" ]; then
+    cp "$SCRIPT_DIR/local.sh.example" "$DEPLOY_DIR/local.sh"
+    echo "  created $DEPLOY_DIR/local.sh"
 fi
-
-# uv
-if ! command -v uv &>/dev/null; then
-    read -p "  Install uv? (y/n) " -n 1 -r; echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-    fi
-else
-    echo "  [ok] uv installed"
-fi
-
-# fzf
-if ! command -v fzf &>/dev/null; then
-    read -p "  Install fzf? (y/n) " -n 1 -r; echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        if command -v brew &>/dev/null; then
-            brew install fzf
-        else
-            git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && ~/.fzf/install --no-bash --no-fish --key-bindings --completion --update-rc
-        fi
-    fi
-else
-    echo "  [ok] fzf installed"
-fi
-
-# zoxide
-if ! command -v zoxide &>/dev/null; then
-    read -p "  Install zoxide? (y/n) " -n 1 -r; echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        if command -v brew &>/dev/null; then
-            brew install zoxide
-        else
-            curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
-        fi
-    fi
-else
-    echo "  [ok] zoxide installed"
-fi
-
-# eza
-if ! command -v eza &>/dev/null; then
-    read -p "  Install eza? (y/n) " -n 1 -r; echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        if command -v brew &>/dev/null; then
-            brew install eza
-        elif command -v cargo &>/dev/null; then
-            cargo install eza
-        else
-            echo "  [skip] Install eza manually: https://github.com/eza-community/eza"
-        fi
-    fi
-else
-    echo "  [ok] eza installed"
-fi
-
-echo ""
-echo "Done! Config deployed to $DEPLOY_DIR"
-echo "Restart your shell or run: source ~/.zshrc"
+printf '\nDone. Start or restart zsh to use the configuration.\n'

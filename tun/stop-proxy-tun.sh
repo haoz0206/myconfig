@@ -7,15 +7,21 @@ ADDED_ROUTES_FILE="/tmp/tun2socks_added_routes"
 
 echo "Stopping global proxy..."
 
-# 停止 tun2socks
+# Only stop the process recorded by this script; never kill unrelated instances.
 if [ -f "$PID_FILE" ]; then
     PID=$(cat "$PID_FILE")
-    sudo kill "$PID" 2>/dev/null
-    sleep 2
-    sudo kill -9 "$PID" 2>/dev/null
+    case "$PID" in
+        ''|*[!0-9]*) echo "Invalid PID file: $PID_FILE" >&2; exit 1 ;;
+    esac
+    if kill -0 "$PID" 2>/dev/null; then
+        CMD=$(ps -o args= -p "$PID" 2>/dev/null || true)
+        case "$CMD" in
+            *tun2socks*) sudo kill "$PID" 2>/dev/null || true ;;
+            *) echo "Recorded PID $PID is not tun2socks; refusing to kill it." >&2; exit 1 ;;
+        esac
+    fi
     rm -f "$PID_FILE"
 fi
-sudo pkill -9 tun2socks
 
 # 恢复路由
 if [ -f /tmp/tun2socks_gw ] && [ -f /tmp/tun2socks_dev ]; then

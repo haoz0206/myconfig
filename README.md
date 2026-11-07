@@ -1,150 +1,79 @@
 # myconfig
 
-One-command setup for my development shell environment across Linux and macOS machines.
+适用于 Linux 和 macOS 的个人终端配置：Zsh、Gruvbox Starship 提示符、tmux 和常用命令行工具。软件统一通过 Homebrew 安装；代理和镜像不会默认启用。
 
-## Quick Start
+## 安装
+
+首先准备 Git、curl 和系统构建工具。Ubuntu/Debian 可以执行：
 
 ```bash
-git clone https://github.com/haoz0206/myconfig.git
-cd myconfig
+sudo apt-get update
+sudo apt-get install -y build-essential procps curl file git
+```
+
+然后克隆并运行：
+
+```bash
+git clone git@github.com:haoz0206/myconfig.git ~/myconfig
+cd ~/myconfig
 bash setup.sh
 ```
 
-Then restart your shell or run `source ~/.zshrc`.
+也可以使用 HTTPS 克隆：`git clone https://github.com/haoz0206/myconfig.git ~/myconfig`。安装脚本会查找 Homebrew；如果没有找到，会运行 [Homebrew 官方安装脚本](https://brew.sh/)，可能需要 sudo 和交互确认。Homebrew 安装完成后，脚本使用它安装 `zsh`、`tmux`、`starship`、`fzf`、`zoxide`、`uv`、`eza` 和 `zinit`。插件由 zinit 在首次交互式 Zsh 启动时下载，需要网络连接。
 
-## Architecture
+启动 `zsh` 或重新打开终端即可使用。脚本不会修改系统登录 shell；如需默认使用 Homebrew 的 Zsh，先将 `$(brew --prefix)/bin/zsh` 加入 `/etc/shells`，再运行 `chsh -s "$(brew --prefix)/bin/zsh"`，重新登录生效。
 
-```
-~/workspace/myconfig/          # git repo (source of truth)
-        |  setup.sh copies
-        v
-~/.myconfig/                   # deployed config (what your shell uses)
-├── zshrc                      #   <- ~/.zshrc sources this
-├── shell_common.sh            #   shared shell config
-├── starship.toml              #   <- ~/.config/starship.toml symlinks here
-├── tmux.conf                  #   <- ~/.tmux.conf symlinks here
-├── local.sh                   #   machine-specific overrides (not in git)
-└── s-box/                     #   sing-box proxy scripts
-```
-
-Edit the repo freely during development. Run `bash setup.sh` again to redeploy.
-
-## What setup.sh Does
-
-1. **Copies** config files to `~/.myconfig/`
-2. **Symlinks** starship and tmux configs to standard locations
-3. **Injects** `source ~/.myconfig/zshrc` into `~/.zshrc`
-4. **Creates** `local.sh` from template (prompts for proxy IP/port)
-5. **Installs** tools (all optional, interactive prompts):
-
-| Tool | Purpose |
-|------|---------|
-| [zinit](https://github.com/zdharma-continuum/zinit) | Zsh plugin manager (turbo mode) |
-| [starship](https://starship.rs) | Cross-shell prompt (One Dark theme) |
-| [fzf](https://github.com/junegunn/fzf) | Fuzzy finder (Ctrl+R, Ctrl+T, Alt+C) |
-| [zoxide](https://github.com/ajeetdsouza/zoxide) | Smart `cd` (`z foo` jumps to best match) |
-| [uv](https://github.com/astral-sh/uv) | Fast Python package manager |
-
-## Shell Features
-
-### Proxy Toggle
+只部署配置、不安装或更新软件：
 
 ```bash
-proxy        # set http_proxy/https_proxy/all_proxy (reads from local.sh)
-noproxy      # unset all proxy env vars
+bash setup.sh --no-install
 ```
 
-Proxy status shows in the starship prompt as `PROXY.ON` / `PROXY.OFF`.
+Starship 和部分 tmux 符号需要终端使用 [Nerd Font](https://www.nerdfonts.com/)；终端还应支持真彩色。
 
-### Zsh Plugins (via zinit, turbo-loaded)
+## 部署与更新
 
-- **zsh-autosuggestions** -- fish-like inline suggestions
-- **zsh-completions** -- extra tab-completion definitions
-- **fzf-tab** -- fuzzy Tab completion powered by fzf
-- **fast-syntax-highlighting** -- real-time command coloring
+脚本将 `zshrc`、`shell_common.sh`、`proxy.sh`、`starship.toml` 和 `tmux.conf` 复制到 `~/.myconfig/`，并创建：
 
-### Chinese Mirrors (pre-configured)
+- `~/.config/starship.toml` → `~/.myconfig/starship.toml`
+- `~/.tmux.conf` → `~/.myconfig/tmux.conf`
+- `~/.zshrc` 中的一行 source，保留原有内容。
 
-```bash
-pip install foo -i $tsmirror    # Tsinghua PyPI mirror
-pip install foo -i $zju         # ZJU PyPI mirror
-# HF_ENDPOINT is auto-set for huggingface-cli
-```
+重复运行会更新部署文件。被替换的文件和有冲突的链接会先改名为带 `.myconfig-backup-时间戳` 后缀的备份；内容不变时不会重复备份。`~/.myconfig/local.sh` 首次运行时从模板创建，之后始终保留。修改仓库文件后再次运行脚本以部署；`--no-install` 适合只更新配置。
 
-### Other
+## 终端功能
 
-- **Truecolor over SSH** -- auto-detects Ghostty/Alacritty/xterm-256color and sets `COLORTERM`
-- **`~/.local/bin` in PATH** -- user-local binaries work without root
+- Starship 使用 Gruvbox 深色主题，显示用户、目录、Git 状态、语言环境和时间。Node.js 模块按当前主题设置禁用。
+- Zsh 使用 zinit 加载 `zsh-autosuggestions`、`zsh-completions`、`fzf-tab` 和 `fast-syntax-highlighting`；集成 fzf、zoxide、uv 和 eza。
+- tmux 前缀为 `Ctrl+s`；`|` 和 `-` 分屏，`h/j/k/l` 切换面板，`H/J/K/L` 调整大小，`v` 进入复制模式，`g` 同步面板，`z` 缩放面板。复制使用 OSC 52，需要本地终端支持。
+- SSH 会话在适用的终端类型下启用真彩色；`~/.local/bin` 会加入 PATH。
 
-## Machine-Specific Config (local.sh)
+## 机器专属设置与代理
 
-Generated during setup, preserved across redeploys. Example:
+编辑 `~/.myconfig/local.sh` 放置本机变量；不要把凭据提交到仓库。默认不设置代理或镜像。需要 HTTP/SOCKS 代理助手时，可以在该文件中配置：
 
 ```bash
 PROXY_IP=127.0.0.1
 PROXY_PORT=12421
-proxy                           # enable proxy on shell startup
-# export UV_CACHE_DIR=/data/cache/uv
+source "$MYCONFIG_DIR/proxy.sh"
+# proxy   # 如需每次启动时启用，取消注释
 ```
 
-## sing-box Proxy (Linux)
+之后可使用 `proxy` 和 `noproxy` 切换。Starship 仅在 `PROXY=ON` 时显示 `PROXY.ON`；该提示本身不会配置代理。原有 `local.sh` 如果直接调用 `proxy`，升级后需在调用前加入上述 `source` 行。
 
-The `s-box/` directory manages [sing-box](https://github.com/SagerNet/sing-box) as a TUN proxy client:
+仓库中的 `tun/` 是独立的 Linux 代理实验脚本，默认安装过程不部署或运行它。脚本会修改默认路由，恢复流程不能覆盖所有网络配置；请先阅读 `tun/README.md`，不要在依赖远程连接的机器上直接运行。
 
-```bash
-# Install (tries GitHub, falls back to Chinese mirrors)
-~/.myconfig/s-box/install.sh
+## 文件
 
-# Edit config with your server details
-vim ~/.config/sing-box/config.json
+| 文件 | 用途 |
+| --- | --- |
+| `setup.sh` | 安装 Homebrew 工具并部署配置 |
+| `zshrc`、`shell_common.sh` | Zsh、插件和 shell 初始化 |
+| `starship.toml` | Gruvbox 提示符主题 |
+| `tmux.conf` | tmux 快捷键、外观和终端设置 |
+| `local.sh.example`、`proxy.sh` | 本机覆盖与可选代理助手 |
+| `tun/` | 实验性代理脚本，默认不运行 |
 
-# Quick toggle
-tun          # toggle on/off
-tun on       # force on
-tun off      # force off
+## 检查
 
-# Or use systemd for auto-start
-sudo ~/.myconfig/s-box/install-service.sh
-```
-
-### sing-box Scripts
-
-| Script | Purpose |
-|--------|---------|
-| `install.sh` | Download sing-box with mirror fallback |
-| `start.sh` | Start sing-box manually (TUN mode, needs root) |
-| `stop.sh` | Stop sing-box |
-| `status.sh` | Check process, TUN device, routes, DNS, connectivity |
-| `toggle.sh` | Quick on/off toggle (used by `tun` alias) |
-| `install-service.sh` | Install as systemd service |
-
-## tmux Keybindings
-
-Prefix: `Ctrl+s`
-
-| Key | Action |
-|-----|--------|
-| `\|` | Vertical split |
-| `-` | Horizontal split |
-| `h/j/k/l` | Navigate panes (vim-style) |
-| `H/J/K/L` | Resize panes |
-| `Ctrl+h/l` | Previous/next window |
-| `Alt+1..9` | Switch to window N |
-| `v` | Enter copy mode |
-| `g` | Sync panes (type in all panes) |
-| `z` | Maximize/restore pane |
-
-Supports OSC 52 clipboard for copying over SSH.
-
-## File Overview
-
-```
-setup.sh            Main installer/deployer
-shell_common.sh     Shared config: PATH, proxy, mirrors, truecolor
-zshrc               Zsh: zinit plugins, fzf/zoxide/starship init
-starship.toml       Prompt theme (One Dark, powerline segments)
-tmux.conf           tmux config (vim keys, mouse, OSC 52 clipboard)
-local.sh.example    Template for machine-specific overrides
-s-box/              sing-box proxy management scripts
-tun/                Manual TUN proxy reference (tun2socks, Linux only)
-```
+在仓库目录运行 `bash tests/setup.sh`，可以在临时主目录中检查部署、备份和重复运行；该测试不会修改系统网络或安装软件。

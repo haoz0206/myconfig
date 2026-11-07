@@ -1,6 +1,17 @@
 # ====================================
 # Zsh-specific config
 # ====================================
+# Discover Homebrew before loading tools, including in non-login shells.
+if (( $+commands[brew] )); then
+    eval "$(brew shellenv zsh)"
+else
+    for brew_bin in /opt/homebrew/bin/brew /usr/local/bin/brew /home/linuxbrew/.linuxbrew/bin/brew; do
+        if [[ -x "$brew_bin" ]]; then
+            eval "$("$brew_bin" shellenv zsh)"
+            break
+        fi
+    done
+fi
 MYCONFIG_DIR="$(cd "$(dirname "${(%):-%x}")" && pwd)"
 source "$MYCONFIG_DIR/shell_common.sh"
 
@@ -28,24 +39,19 @@ fi
 alias grep='grep --color=auto'
 
 # -- Zinit plugin manager --
-ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
-if [[ ! -f "$ZINIT_HOME/zinit.zsh" ]]; then
-    echo "Installing zinit..."
-    mkdir -p "$(dirname "$ZINIT_HOME")"
-    git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
+# Zinit itself is installed by Homebrew; plugins download on first use.
+if command -v brew >/dev/null 2>&1 && [[ -f "$(brew --prefix)/opt/zinit/zinit.zsh" ]]; then
+    source "$(brew --prefix)/opt/zinit/zinit.zsh"
+    zinit light-mode wait lucid for \
+        zsh-users/zsh-autosuggestions \
+        zsh-users/zsh-completions \
+        Aloxaf/fzf-tab \
+        zdharma-continuum/fast-syntax-highlighting
+    autoload -Uz compinit && compinit
+    zinit cdreplay -q
+else
+    autoload -Uz compinit && compinit
 fi
-source "$ZINIT_HOME/zinit.zsh"
-
-# Plugins (turbo mode — deferred loading for fast startup)
-zinit light-mode wait lucid for \
-    zsh-users/zsh-autosuggestions \
-    zsh-users/zsh-completions \
-    Aloxaf/fzf-tab \
-    zdharma-continuum/fast-syntax-highlighting
-
-# Load completions
-autoload -Uz compinit && compinit
-zinit cdreplay -q
 
 # -- Tool init --
 command -v fzf &>/dev/null && eval "$(fzf --zsh)"

@@ -1,12 +1,13 @@
 # TUN Proxy via tun2socks
 
-A clean implementation of global traffic proxying through a TUN device on Linux.
-Routes all network traffic through a SOCKS5 proxy at the kernel level using
-[tun2socks](https://github.com/xjasonlyu/tun2socks).
+Experimental Linux scripts for routing IPv4 traffic through a TUN device and
+[tun2socks](https://github.com/xjasonlyu/tun2socks). This is a reference, not a
+fully automated or production-ready network setup.
 
-> **Note:** For most use cases, the `s-box/` (sing-box) approach is recommended
-> instead, as it handles TUN creation, routing, and DNS automatically. This
-> directory is kept as a reference implementation for manual TUN device setup.
+> **Warning:** These scripts are experimental and modify the system default route.
+> They do not reliably restore every routing configuration or recover from every
+> failure. Do not run them on a remote machine without independent console access.
+> They are not installed or run by the main setup script.
 
 ## Prerequisites
 
@@ -14,48 +15,25 @@ Routes all network traffic through a SOCKS5 proxy at the kernel level using
 - A running SOCKS5 proxy server
 - Root access (sudo)
 
-## Install tun2socks
+## tun2socks dependency
 
-### Option 1: Download prebuilt binary
-
-```bash
-# Check latest release at https://github.com/xjasonlyu/tun2socks/releases
-VERSION="2.5.2"
-ARCH="amd64"  # or arm64
-
-curl -Lo tun2socks.gz \
-    "https://github.com/xjasonlyu/tun2socks/releases/download/v${VERSION}/tun2socks-linux-${ARCH}.gz"
-gunzip tun2socks.gz
-chmod +x tun2socks
-mv tun2socks ~/.local/bin/
-```
-
-### Option 2: Build from source (requires Go)
-
-```bash
-go install github.com/xjasonlyu/tun2socks/v2@latest
-# Binary will be at ~/go/bin/tun2socks
-```
-
-### Verify
-
-```bash
-tun2socks --version
-```
+The scripts require an existing `tun2socks` executable. Homebrew does not
+currently provide a core formula for it; the main setup does not install it.
+Choose and verify a suitable installation method before experimenting.
 
 ## Configuration
 
 Edit the variables at the top of `start-proxy-tun.sh`:
 
 ```bash
-SOCKS5_SERVER="10.126.126.6"   # Your SOCKS5 proxy address
+SOCKS5_SERVER="127.0.0.1"      # Your SOCKS5 proxy address
 SOCKS5_PORT="12421"            # Your SOCKS5 proxy port
 TUN_DEVICE="tun_proxy"         # TUN device name
 TUN_IP="10.10.0.1"             # TUN device IP
 TUN_GATEWAY="10.10.0.2"        # TUN gateway IP
 ```
 
-Add any networks that should bypass the proxy to `EXCLUDED_NETWORKS`.
+Add any networks that should bypass the proxy to `EXCLUDED_NETWORKS`. For a local SOCKS5 client, populate `REMOTE_PROXY_SERVERS` with its upstream server addresses; the start script refuses to run without them.
 
 ## Usage
 
@@ -77,4 +55,4 @@ sudo ./stop-proxy-tun.sh
 3. Saves the original default gateway
 4. Adds direct routes for excluded networks (local, proxy server itself)
 5. Replaces the default route to go through the TUN device
-6. On stop: kills tun2socks, restores original routes, removes TUN device
+6. On stop: attempts to stop the recorded process, restore routes, and remove the TUN device; manual recovery may be required
