@@ -1,163 +1,213 @@
 "$schema" = 'https://starship.rs/config-schema.json'
 
 format = """
-[](color_red0)\
+[](color_orange)\
 $os\
 $username\
-[](bg:color_green fg:color_red0)\
-$conda\
-[](bg:color_orange fg:color_green)\
+[](bg:color_yellow fg:color_orange)\
 $directory\
-[](fg:color_orange bg:color_yellow)\
+[](fg:color_yellow bg:color_aqua)\
 $git_branch\
 $git_status\
-[](fg:color_yellow bg:color_green)\
-$python\
+[](fg:color_aqua bg:color_blue)\
+$c\
+$cpp\
 $rust\
 $golang\
-$c\
-[](fg:color_green bg:color_cyan)\
+$nodejs\
+$php\
+$java\
+$kotlin\
+$haskell\
+$python\
+[](fg:color_blue bg:color_bg3)\
 $docker_context\
-[ ](color_cyan)\
-$fill\
-([ ](mono4)\
-$env_var\
+$conda\
+$pixi\
+[](fg:color_bg3 bg:color_bg1)\
+${custom.proxy}\
 $time\
 $battery\
-[](mono4))\
+[ ](fg:color_bg1)\
 $line_break$character"""
 
-palette = 'one_dark'
+palette = 'gruvbox_dark'
 
-[palettes.one_dark]
-mono0 = '#d7dae0'
-mono1 = '#abb2bf'
-mono2 = '#828997'
-mono3 = '#5c6370'
-mono4 = '#3f4451'
-color_red0 = '#e06c75'
-color_red1 = '#be5046'
-color_green = '#98c379'
-color_yellow = '#e5c07b'
-color_blue = '#61afef'
-color_purple = '#c678dd'
-color_cyan = '#56b6c2'
-color_orange = '#d19a66'
-syntax_fg = '#abb2bf'
-syntax_bg = '#282c34'
-syntax_accent = '#528cff'
+[palettes.gruvbox_dark]
+color_fg0 = '#fbf1c7'
+color_bg1 = '#3c3836'
+color_bg3 = '#665c54'
+color_blue = '#458588'
+color_aqua = '#689d6a'
+color_green = '#98971a'
+color_orange = '#d65d0e'
+color_purple = '#b16286'
+color_red = '#cc241d'
+color_yellow = '#d79921'
 
 [os]
 disabled = false
-style = "bg:color_red0 fg:syntax_bg"
-format = '[$symbol ]($style)'
+style = "bg:color_orange fg:color_fg0"
 
 [os.symbols]
+Windows = "󰍲"
+Ubuntu = "󰕈"
+SUSE = ""
+Raspbian = "󰐿"
+Mint = "󰣭"
+Macos = "󰀵"
+Manjaro = ""
+Linux = "󰌽"
+Gentoo = "󰣨"
+Fedora = "󰣛"
 Alpine = ""
 Amazon = ""
-Arch = ""
+Android = ""
+AOSC = ""
+Arch = "󰣇"
+Artix = "󰣇"
+EndeavourOS = ""
 CentOS = ""
 Debian = "󰣚"
-Fedora = "󰣛"
-Linux = "󰌽"
-Macos = "󰀵"
-Manjaro = "��"
-NixOS = "󱄅"
-Raspbian = ""
 Redhat = "󱄛"
-Ubuntu = "󰕈"
-Windows = "󰍲"
+RedHatEnterprise = "󱄛"
+Pop = ""
 
 [username]
 show_always = true
-style_user = "bold bg:color_red0 fg:syntax_bg"
-style_root = "bold italic bg:color_red0 fg:syntax_bg"
-format = '[$user]($style)'
+style_user = "bg:color_orange fg:color_fg0"
+style_root = "bg:color_orange fg:color_fg0"
+format = '[ $user ]($style)'
 
 [directory]
-style = "italic fg:syntax_bg bg:color_orange"
-format = "[$path]($style)"
-truncation_length = 3
+style = "fg:color_fg0 bg:color_yellow"
+format = "[ $path ]($style)"
+truncation_length = 6
+truncation_symbol = ""
+truncate_to_repo = true
 
-[conda]
-symbol = '🅒 '
-style = "bold bg:color_green fg:syntax_bg"
-format = '[$symbol$environment]($style)'
-
-[env_var.PROXY]
-variable = 'PROXY'
-default = 'OFF'
-style = 'bold bg:mono4 fg:color_red1'
-format = '[PROXY.$env_value]($style)'
+[directory.substitutions]
+"Documents" = "󰈙 "
+"Downloads" = " "
+"Music" = "󰝚 "
+"Pictures" = " "
+"Developer" = "󰲋 "
 
 [git_branch]
 symbol = ""
-style = "bg:color_yellow"
-format = '[[ $symbol $branch ](fg:syntax_bg bg:color_yellow)]($style)'
+style = "bg:color_aqua"
+format = '[[ $symbol $branch ](fg:color_fg0 bg:color_aqua)]($style)'
 
 [git_status]
-style = "bg:color_yellow"
-format = '[[($all_status$ahead_behind )](fg:syntax_bg bg:color_yellow)]($style)'
+style = "bg:color_aqua"
+format = '[[($all_status$ahead_behind )](fg:color_fg0 bg:color_aqua)]($style)'
+
+[nodejs]
+disabled = true
+symbol = ""
+style = "bg:color_blue"
+format = '[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)'
 
 [c]
 symbol = " "
-style = "bg:color_green"
-format = '[[ $symbol( $version) ](fg:syntax_bg bg:color_green)]($style)'
+style = "bg:color_blue"
+format = '[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)'
+
+[cpp]
+symbol = " "
+style = "bg:color_blue"
+format = '[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)'
 
 [rust]
 symbol = ""
-style = "bg:color_green"
-format = '[[ $symbol( $version) ](fg:syntax_bg bg:color_green)]($style)'
+style = "bg:color_blue"
+format = '[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)'
 
 [golang]
 symbol = ""
-style = "bg:color_green"
-format = '[[ $symbol( $version) ](fg:syntax_bg bg:color_green)]($style)'
+style = "bg:color_blue"
+format = '[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)'
+
+[php]
+symbol = ""
+style = "bg:color_blue"
+format = '[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)'
+
+[java]
+symbol = ""
+style = "bg:color_blue"
+format = '[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)'
+
+[kotlin]
+symbol = ""
+style = "bg:color_blue"
+format = '[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)'
+
+[haskell]
+symbol = ""
+style = "bg:color_blue"
+format = '[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)'
 
 [python]
-symbol = " "
-style = "bg:color_green"
-format = '[[ $symbol( $version) ](fg:syntax_bg bg:color_green)]($style)'
+symbol = ""
+style = "bg:color_blue"
+format = '[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)'
 
 [docker_context]
-symbol = " "
-style = "bg:mono3"
-format = '[[ $symbol( $context) ](fg:syntax_fg bg:mono3)]($style)'
+symbol = ""
+style = "bg:color_bg3"
+format = '[[ $symbol( $context) ](fg:#83a598 bg:color_bg3)]($style)'
 
-[fill]
-symbol = " "
+[conda]
+style = "bg:color_bg3"
+format = '[[ $symbol( $environment) ](fg:#83a598 bg:color_bg3)]($style)'
+
+[pixi]
+style = "bg:color_bg3"
+format = '[[ $symbol( $version)( $environment) ](fg:color_fg0 bg:color_bg3)]($style)'
 
 [time]
 disabled = false
-use_12hr = true
-style = "bg:mono4"
-format = '[[ 󰥔 $time ](fg:syntax_fg bg:mono4)]($style)'
+time_format = "%R"
+style = "bg:color_bg1"
+format = '[[  $time ](fg:color_fg0 bg:color_bg1)]($style)'
+
+[custom.proxy]
+description = 'Show PROXY.ON when $PROXY=ON, hidden otherwise.'
+command = 'echo ON'
+when = '[ "$PROXY" = "ON" ]'
+style = 'bold bg:color_bg1 fg:color_red'
+format = '[ PROXY.$output ]($style)'
 
 [battery]
 format = '[$symbol $percentage ]($style)'
 
 [[battery.display]]
 threshold = 20
-style = "bold bg:mono4 fg:color_red0"
+style = "bold bg:color_bg1 fg:color_red"
 discharging_symbol = "󰁻"
 charging_symbol = "󰂆"
 
 [[battery.display]]
 threshold = 50
-style = "bold bg:mono4 fg:color_yellow"
+style = "bold bg:color_bg1 fg:color_yellow"
 discharging_symbol = "󰁾"
 charging_symbol = "󰢝"
 
 [[battery.display]]
-style = "bold bg:mono4 fg:color_green"
+threshold = 100
+style = "bold bg:color_bg1 fg:color_green"
 discharging_symbol = "󰁹"
 charging_symbol = "󰂅"
-threshold = 100
+
+[line_break]
+disabled = false
 
 [character]
-success_symbol = '[󰅂](bold fg:syntax_accent)'
-error_symbol = '[](bold fg:color_red1)'
-vimcmd_symbol = '[󰅁](bold fg:syntax_accent)'
-vimcmd_replace_one_symbol = '[󰅁](bold fg:color_purple)'
-vimcmd_replace_symbol = '[󰅁](bold fg:color_purple)'
-vimcmd_visual_symbol = '[󰅁](bold fg:color_yellow)'
+disabled = false
+success_symbol = '[](bold fg:color_green)'
+error_symbol = '[](bold fg:color_red)'
+vimcmd_symbol = '[](bold fg:color_green)'
+vimcmd_replace_one_symbol = '[](bold fg:color_purple)'
+vimcmd_replace_symbol = '[](bold fg:color_purple)'
+vimcmd_visual_symbol = '[](bold fg:color_yellow)'
